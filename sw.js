@@ -2,7 +2,7 @@
    - offline shell cache
    - scheduled + background notifications
    - notification actions (add / done / snooze) */
-var VER = 'wl-v12';
+var VER = 'wl-v13';
 var SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {

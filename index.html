@@ -2401,17 +2401,31 @@ function calRange(){
   if(ui.calView==='list') return [today(), addDays(today(),30)];
   var first=new Date(ui.calY, ui.calM, 1); var start=new Date(first); start.setDate(1-first.getDay()); var a=ds(start); return [a, addDays(a,42)];
 }
-/* Google event colorIds 1-11, re-tuned so they read well on both themes */
-var GC_COLORS={1:'#7A67D6',2:'#4E9A63',3:'#8C3FA8',4:'#DD5B5B',5:'#BE8E00',6:'#E0712C',7:'#1782A3',8:'#5B6470',9:'#3A5BD9',10:'#2C7A31',11:'#D33426'};
-var GC_FALLBACK=['#3A5BD9','#E0712C','#7A67D6','#1782A3','#2C7A31','#BE8E00','#D33426','#8C3FA8'];
-function calColor(id){ var h=0, str=String(id||''); for(var i=0;i<str.length;i++){ h=(h*31+str.charCodeAt(i))>>>0; } return GC_FALLBACK[h%GC_FALLBACK.length]; }
-function evColor(e, cal){ var c=GC_COLORS[String(e.colorId||'')]; return c||calColor(cal.id); }
+/* Google's own event colours are far louder than the rest of the app. Each colorId 1-11
+   is re-drawn in the มาการอง family — same hue so a "Tomato" event still reads red, but
+   at the weight everything else on the screen sits at. */
+var GC_HUES={
+  light:{1:'#9B80D4',2:'#4FAEA1',3:'#B07BC9',4:'#E08A62',5:'#EFB420',6:'#E8874A',
+         7:'#4FA3D1',8:'#9A9AA6',9:'#5D93DB',10:'#5FAE79',11:'#DF6B6B'},
+  dark: {1:'#B69EE7',2:'#74CABD',3:'#C79AE0',4:'#F0AC85',5:'#FFCF52',6:'#F5A574',
+         7:'#79C0E8',8:'#B2B2BE',9:'#8DB6EE',10:'#86C79C',11:'#EE9494'}
+};
+function gcHash(id){ var h=0, str=String(id||''); for(var i=0;i<str.length;i++){ h=(h*31+str.charCodeAt(i))>>>0; } return h; }
+/* a calendar with no colour of its own borrows the category palette */
+function calColor(id){ var hs=palHues(); return hs[gcHash(id)%hs.length]; }
+function evColor(e, cal){ var c=GC_HUES.light[String(e.colorId||'')]; return c||calColor(cal.id); }
+/* resolved at paint time so switching light/dark re-colours cached events too */
+function evPaint(ev){
+  var m=isDarkMode()?GC_HUES.dark:GC_HUES.light;
+  if(ev&&ev.cid&&m[ev.cid]) return m[ev.cid];
+  var hs=palHues(); return hs[gcHash(ev&&ev.calId)%hs.length];
+}
 function evNorm(e, cal){
   var st=e.start||{}, en=e.end||{}; var allDay=!!st.date; var date, time='', endTime='', endDate;
   if(allDay){ date=String(st.date).slice(0,10); endDate=en.date?String(en.date).slice(0,10):addDays(date,1); }
   else { date=String(st.dateTime||'').slice(0,10); time=String(st.dateTime||'').slice(11,16); endTime=String(en.dateTime||'').slice(11,16); endDate=String(en.dateTime||'').slice(0,10); }
   var desc=String(e.description||'').replace(/<br\s*\/?>/gi,' ').replace(/<\/p>/gi,' ').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim(); if(desc.length>160) desc=desc.slice(0,157)+'…';
-  return {id:e.id, title:e.summary||'(ไม่มีชื่อ)', date:date, endDate:endDate, allDay:allDay, time:time, endTime:endTime, location:e.location||'', desc:desc, link:e.htmlLink||'', cal:cal.primary?'':cal.name, calId:cal.id, color:evColor(e,cal)};
+  return {id:e.id, title:e.summary||'(ไม่มีชื่อ)', date:date, endDate:endDate, allDay:allDay, time:time, endTime:endTime, location:e.location||'', desc:desc, link:e.htmlLink||'', cal:cal.primary?'':cal.name, calId:cal.id, cid:String(e.colorId||''), color:evColor(e,cal)};
 }
 function gcalErrText(code){
   return {needs_reauth:'สิทธิ์ Google Calendar หมดอายุ — เชื่อมต่อใหม่ที่ claude.ai → Settings → Connectors',
@@ -2500,7 +2514,7 @@ function renderGstat(){
   g.innerHTML=''; var t=gcal.at?new Date(gcal.at):null; $('calSync').title='Google Calendar'+(t?' · อัปเดต '+pad(t.getHours())+':'+pad(t.getMinutes()):'');
 }
 function evRow(ev){
-  var a=document.createElement('a'); a.className='evrow'+(ev.color?' ec':''); if(ev.color) a.style.setProperty('--ec', adapt(ev.color)); a.href=ev.link||'#'; a.target='_blank'; a.rel='noopener';
+  var a=document.createElement('a'); a.className='evrow ec'; a.style.setProperty('--ec', evPaint(ev)); a.href=ev.link||'#'; a.target='_blank'; a.rel='noopener';
   a.innerHTML='<div class="tm"></div><div style="min-width:0"><div class="et"></div><div class="el"></div><div class="ed"></div></div>';
   a.querySelector('.tm').textContent=ev.allDay?'ทั้งวัน':(ev.time+(ev.endTime?'\n'+ev.endTime:'')); a.querySelector('.tm').style.whiteSpace='pre-line';
   a.querySelector('.et').textContent=ev.title; a.querySelector('.el').textContent=[ev.location, ev.cal].filter(Boolean).join(' · ');
@@ -2538,7 +2552,7 @@ function render3(){
   var now=new Date(); var days=[]; for(var i=0;i<TG_N;i++) days.push(addDays(tgWin.start,i));
   days.forEach(function(k,i){ var d=pd(k); var h=document.createElement('div'); h.className='dhc'+(k===td?' today':''); h.innerHTML='<span></span><b class="num">'+d.getDate()+'</b>'; h.firstChild.textContent=TH_DAYS_S[d.getDay()]+(d.getDate()===1||i===0?' '+TH_MON_S[d.getMonth()]:''); hdr.appendChild(h); });
   days.forEach(function(k,i){ var c=document.createElement('div'); c.className='adc-col'; c.dataset.k=k;
-    evFor(k).filter(function(e){ return e.allDay; }).forEach(function(e){ var x=document.createElement('a'); x.className='adc'+(e.color?' ec':''); if(e.color) x.style.setProperty('--ec', adapt(e.color)); x.textContent=e.title; x.href=e.link||'#'; x.target='_blank'; x.rel='noopener'; c.appendChild(x); });
+    evFor(k).filter(function(e){ return e.allDay; }).forEach(function(e){ var x=document.createElement('a'); x.className='adc ec'; x.style.setProperty('--ec', evPaint(e)); x.textContent=e.title; x.href=e.link||'#'; x.target='_blank'; x.rel='noopener'; c.appendChild(x); });
     state.tasks.filter(function(t){ return t.due===k&&!t.time&&!t.done&&(ui.calCat==='all'||t.cat===ui.calCat)&&!futureRepeat(t,td); }).forEach(function(t){ var x=document.createElement('div'); x.className='adc task'; x.textContent=t.title; x.addEventListener('click', function(){ openDetail(t.id); }); c.appendChild(x); });
     adr.appendChild(c); });
   var g=document.createElement('div'); g.className='gutter'; for(var h=1;h<24;h++){ var sp=document.createElement('span'); sp.style.top=(h*48)+'px'; sp.textContent=pad(h)+':00'; g.appendChild(sp); } body.appendChild(g);
@@ -2547,7 +2561,7 @@ function render3(){
     for(var h2=1;h2<24;h2++){ var hl=document.createElement('div'); hl.className='hl'; hl.style.top=(h2*48)+'px'; col.appendChild(hl); }
     var items=[];
     function place(el, t0, t1){ var a=t0.split(':'), b=(t1||'').split(':'); var s0=(+a[0])*60+(+a[1]); var s1=t1?(+b[0])*60+(+b[1]):s0+45; if(s1<=s0) s1=s0+45; el.style.top=(s0/1440*1152)+'px'; el.style.height=Math.max(20,(s1-s0)/1440*1152-2)+'px'; items.push({s0:s0, s1:Math.max(s1,s0+25), el:el}); }
-    evFor(k).filter(function(e){ return !e.allDay; }).forEach(function(e){ var b=document.createElement('a'); b.className='blk'+(e.color?' ec':''); if(e.color) b.style.setProperty('--ec', adapt(e.color)); b.href=e.link||'#'; b.target='_blank'; b.rel='noopener'; b.innerHTML='<b></b><small></small>'; b.firstChild.textContent=e.title; b.lastChild.textContent=e.time+(e.endTime?'–'+e.endTime:'')+(e.location?' · '+e.location:''); place(b,e.time,e.endTime); col.appendChild(b); });
+    evFor(k).filter(function(e){ return !e.allDay; }).forEach(function(e){ var b=document.createElement('a'); b.className='blk ec'; b.style.setProperty('--ec', evPaint(e)); b.href=e.link||'#'; b.target='_blank'; b.rel='noopener'; b.innerHTML='<b></b><small></small>'; b.firstChild.textContent=e.title; b.lastChild.textContent=e.time+(e.endTime?'–'+e.endTime:'')+(e.location?' · '+e.location:''); place(b,e.time,e.endTime); col.appendChild(b); });
     state.tasks.filter(function(t){ return t.due===k&&t.time&&!t.done&&(ui.calCat==='all'||t.cat===ui.calCat)&&!futureRepeat(t,td); }).forEach(function(t){ var b=document.createElement('div'); b.className='blk task'; b.innerHTML='<b></b><small></small>'; b.firstChild.textContent=t.title; b.lastChild.textContent=t.time+' · งาน'; place(b,t.time,''); b.addEventListener('click', function(){ openDetail(t.id); }); col.appendChild(b); });
     layoutLanes(items);
     if(k===td){ var nl=document.createElement('div'); nl.className='now'; nl.style.top=((now.getHours()*60+now.getMinutes())/1440*1152)+'px'; col.appendChild(nl); }
@@ -2619,7 +2633,7 @@ function fillMonthPanel(el, y, m){
     /* two separate languages on one cell: the number is งาน, the dots are ปฏิทิน.
        Mixing both into the dots was what made the month look busy. */
     var evs=evFor(k);
-    evs.slice(0,4).forEach(function(ev){ var i3=document.createElement('i'); i3.style.background=ev.color?adapt(ev.color):'var(--muted)'; dots.appendChild(i3); });
+    evs.slice(0,4).forEach(function(ev){ var i3=document.createElement('i'); i3.style.background=evPaint(ev); dots.appendChild(i3); });
     if(evs.length>4){ var mo=document.createElement('span'); mo.className='more'; mo.textContent='+'+(evs.length-4); dots.appendChild(mo); }
     if(openN){ var b=document.createElement('div'); b.className='dcount num'+(k<td?' over':''); b.textContent=String(openN); cell.appendChild(b); }
     (function(k){ cell.addEventListener('click', function(){ ui.calSel=k; renderCal(); }); })(k);
