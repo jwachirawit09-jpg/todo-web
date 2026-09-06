@@ -363,10 +363,20 @@
   .scrim{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:30; display:none}
   .scrim.on{display:block}
   .sheet{position:fixed; left:50%; bottom:0; width:100%; max-width:600px; z-index:31; background:var(--surface); border-radius:22px 22px 0 0; padding:10px 18px calc(18px + env(safe-area-inset-bottom)); box-shadow:0 -10px 40px rgba(0,0,0,.25);
-    transform:translate(-50%, calc(101% - var(--kb,0px))); visibility:hidden; pointer-events:none; will-change:transform;
-    transition:transform .34s cubic-bezier(.22,1,.36,1), visibility 0s linear .34s; overscroll-behavior:contain}
-  .sheet.on{transform:translate(-50%, calc(0px - var(--kb,0px))); visibility:visible; pointer-events:auto; transition:transform .34s cubic-bezier(.22,1,.36,1), visibility 0s}
+    transform:translate(-50%, calc(101% - var(--kb,0px))); visibility:hidden; pointer-events:none; will-change:transform, translate;
+    transition:transform .36s cubic-bezier(.32,.72,0,1), visibility 0s linear .36s; overscroll-behavior:contain}
+  .sheet.on{transform:translate(-50%, calc(0px - var(--kb,0px))); visibility:visible; pointer-events:auto; transition:transform .36s cubic-bezier(.32,.72,0,1), visibility 0s}
   .sheet.on.opened{transition:transform .16s cubic-bezier(.25,.8,.35,1)}
+  /* The sheet has two jobs at once: slide up, and follow the keyboard. Sharing one
+     transform meant every keyboard step restarted the slide, which is what made it
+     land with a thud. Split them onto two properties so each keeps its own timing. */
+  @supports (translate: 0px 0px){
+    .sheet{translate:-50% 101%; transform:translateY(calc(0px - var(--kb,0px)));
+      transition:translate .36s cubic-bezier(.32,.72,0,1), transform .16s cubic-bezier(.25,.8,.35,1), visibility 0s linear .36s}
+    .sheet.on{translate:-50% 0; transform:translateY(calc(0px - var(--kb,0px)));
+      transition:translate .36s cubic-bezier(.32,.72,0,1), transform .16s cubic-bezier(.25,.8,.35,1), visibility 0s}
+    .sheet.on.opened{transition:translate .16s cubic-bezier(.25,.8,.35,1), transform .16s cubic-bezier(.25,.8,.35,1)}
+  }
   .handle{width:36px; height:4px; border-radius:2px; background:var(--line); margin:0 auto 14px}
   .sheet textarea{width:100%; border:none; background:none; font-size:1.25rem; font-weight:500; resize:none; min-height:64px; outline:none; padding:4px 0; line-height:1.4}
   .sheet textarea::placeholder{color:var(--muted); font-weight:400}
@@ -717,7 +727,7 @@
   @keyframes cardIn{from{opacity:0; transform:scale(.95) translateY(10px)} to{opacity:1; transform:none}}
   @keyframes pop{0%{transform:scale(.7)} 60%{transform:scale(1.15)} 100%{transform:scale(1)}}
   .screen.on{animation:fadeUp .26s cubic-bezier(.2,.7,.2,1)}
-  .scrim.on{animation:fadeIn .2s} .scrim.out{animation:fadeOut .18s forwards}
+  .scrim.on{animation:fadeIn .28s ease-out} .scrim.out{animation:fadeOut .2s forwards}
   .modal.on{animation:fadeIn .18s} .modal.on .box{animation:boxIn .26s cubic-bezier(.2,.7,.2,1)}
   .modal.out{animation:fadeOut .18s forwards; pointer-events:none} .modal.out .box{animation:boxOut .18s ease-in forwards}
   .menu.on{animation:popIn .16s cubic-bezier(.2,.7,.2,1); transform-origin:top right}
@@ -1965,8 +1975,10 @@ function openSheet(preDate){
   syncSheet(); renderQuickTags(); $('scrim').classList.add('on');
   requestAnimationFrame(function(){ $('sheet').classList.add('on'); });
   clearTimeout(sheetFocusT); clearTimeout(sheetOpenT);
-  sheetOpenT=setTimeout(function(){ $('sheet').classList.add('opened'); }, 340);
-  sheetFocusT=setTimeout(function(){ try{ $('qTitle').focus({preventScroll:true}); }catch(e){ try{ $('qTitle').focus(); }catch(x){} } }, 300);
+  /* let the slide get most of the way up before the keyboard starts pushing, so the two
+     movements read as one gesture instead of colliding */
+  sheetOpenT=setTimeout(function(){ $('sheet').classList.add('opened'); }, 380);
+  sheetFocusT=setTimeout(function(){ try{ $('qTitle').focus({preventScroll:true}); }catch(e){ try{ $('qTitle').focus(); }catch(x){} } }, 260);
 }
 var sheetFocusT=null, sheetOpenT=null;
 function closeSheet(){
