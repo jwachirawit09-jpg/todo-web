@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>My To-Do — R27 UI Preview</title>
+<style>
+:root{
+  --bg:#f4f6f8;--panel:#ffffff;--panel2:#f0f3f6;--ink:#20252e;--muted:#7f8998;
+  --line:#dde3ea;--accent:#3f68d8;--accent2:#66c5c2;--sidebar:#1d2533;--sidebarInk:#eef3fb;
+  --shadow:0 14px 35px rgba(28,36,50,.08);--rowPad:16px;--summaryPad:18px;--badgeOpacity:1;
+  --controlBg:#e9edf2;--veil:rgba(244,246,248,.64);
+}
+html[data-theme="dark"]{
+  --bg:#0c1118;--panel:#141b24;--panel2:#1b2430;--ink:#eef3f8;--muted:#8d99a9;
+  --line:#263240;--accent:#5c86f0;--accent2:#64d1cf;--sidebar:#111821;--sidebarInk:#eef3fb;
+  --shadow:0 14px 35px rgba(0,0,0,.34);--controlBg:#1b2430;--veil:rgba(12,17,24,.62);
+}
+html[data-ui="refined"]{
+  --rowPad:11px;--summaryPad:13px;--badgeOpacity:.58;
+}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",sans-serif}
+button{font:inherit;color:inherit}
+.app{min-height:100vh;display:grid;grid-template-columns:240px 1fr}
+.side{background:var(--sidebar);color:var(--sidebarInk);padding:26px 18px;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}.cat{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#dfe8f8,#9eb4da);display:grid;place-items:center;color:#1a2431;font-size:20px}
+.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#bcc8d8;border-radius:12px;text-align:left;padding:11px 12px;display:flex;gap:10px;align-items:center}.nav button.active{background:#31415a;color:#fff}
+.main{position:relative;overflow:hidden;padding:22px 28px 70px}
+.art{position:absolute;inset:0;pointer-events:none;background:
+radial-gradient(circle at 78% 16%,rgba(170,198,255,.23),transparent 13%),
+linear-gradient(160deg,transparent 0 58%,rgba(77,109,144,.09) 58% 59%,transparent 59% 100%)}
+.art:after{content:"";position:absolute;left:0;right:0;bottom:-60px;height:310px;background:
+radial-gradient(ellipse at 68% 100%,rgba(77,104,137,.25),transparent 34%),
+linear-gradient(to top,rgba(49,74,95,.14),transparent 70%);
+clip-path:polygon(0 42%,16% 35%,30% 44%,42% 30%,58% 38%,74% 24%,100% 33%,100% 100%,0 100%)}
+.veil{position:absolute;inset:0;background:linear-gradient(180deg,var(--veil) 0 36%,transparent 74%);pointer-events:none}
+.top,.content{position:relative;z-index:2}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.title{font-size:32px;font-weight:700;letter-spacing:-.02em}
+.controls{display:flex;gap:8px;align-items:center}.pillbtn,.iconbtn{border:1px solid var(--line);background:var(--controlBg);border-radius:12px;padding:8px 12px}.iconbtn{width:40px;height:40px;padding:0}
+.switches{display:flex;gap:6px;background:var(--panel2);padding:4px;border-radius:12px}.switches button{border:0;background:transparent;padding:7px 10px;border-radius:9px;color:var(--muted)}.switches button.on{background:var(--panel);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.summary{display:grid;grid-template-columns:170px 82px 1fr;gap:20px;align-items:center;background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line);border-radius:20px;padding:var(--summaryPad) 18px;box-shadow:var(--shadow);transition:.2s}
+.datebig{display:flex;gap:12px;align-items:center}.day{font-size:58px;font-weight:300;line-height:.9}.datecopy b{display:block;font-size:18px}.datecopy span{font-size:13px;color:var(--muted)}
+.ring{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--accent) 0 20%,var(--panel2) 20% 100%);position:relative}.ring:after{content:"";position:absolute;width:48px;height:48px;background:var(--panel);border-radius:50%}.ring span{position:relative;z-index:1;font-weight:700}
+.sumtitle{font-size:21px;font-weight:650}.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.chip{font-size:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 86%,transparent);border-radius:999px;padding:5px 9px;color:var(--muted)}
+.filters{display:flex;gap:12px;align-items:center;margin:14px 0 10px}.filter{border:0;background:transparent;color:var(--muted);padding:8px 10px;border-radius:10px}.filter.on{background:var(--ink);color:var(--bg)}
+.group{margin-top:18px}.gtitle{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;display:flex;gap:7px;align-items:center}.count{background:var(--panel2);border-radius:999px;padding:2px 8px}
+.list{background:color-mix(in srgb,var(--panel) 94%,transparent);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.row{display:grid;grid-template-columns:28px 1fr 34px;gap:12px;align-items:start;padding:var(--rowPad) 14px;border-top:1px solid var(--line);transition:.2s}.row:first-child{border-top:0}.check{width:22px;height:22px;border-radius:50%;border:2px solid #5aa0d9;margin-top:1px}.task{font-weight:620}.sub{font-size:13px;color:var(--muted);margin-top:5px}.meta{font-size:12px;color:var(--muted);margin-top:8px}.badge{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#ef8fa4;color:white;font-size:12px;font-weight:700;opacity:var(--badgeOpacity);transition:.2s}
+.row:nth-child(2) .badge{background:#d4a24d}.row:nth-child(3) .badge{background:#9275d4}.row:nth-child(4) .badge{background:#638bbf}
+.fab{position:fixed;right:32px;bottom:28px;width:62px;height:62px;border:0;border-radius:50%;background:linear-gradient(145deg,var(--accent),var(--accent2));color:white;font-size:34px;box-shadow:0 14px 34px rgba(54,111,213,.3)}
+.note{position:fixed;left:260px;bottom:18px;font-size:12px;color:var(--muted)}
+@media(max-width:900px){.app{grid-template-columns:1fr}.side{display:none}.main{padding:18px 16px 90px}.summary{grid-template-columns:1fr 70px}.sumcopy{grid-column:1/-1}.note{left:16px}.title{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="cat">🐱</div><span>My to-do list</span></div>
+    <div class="nav">
+      <button class="active">☰ งาน</button><button>▦ ปฏิทิน</button><button>◉ ของฉัน</button>
+      <button>⌕ ค้นหางาน</button><button>✓ ตรวจสอบวันนี้</button><button>▣ แผนอ่านสอบ</button>
+      <button>◇ แท็ก</button><button>↻ ซิงก์ Google</button><button>⇩ สำรองข้อมูล</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="art"></div><div class="veil"></div>
+    <div class="top">
+      <div class="title">งาน</div>
+      <div class="controls">
+        <div class="switches"><button id="classic">Classic</button><button id="refined" class="on">Refined</button></div>
+        <button class="pillbtn">● เครื่องนี้</button><button class="iconbtn" id="theme">☀︎</button><button class="iconbtn">⋮</button>
+      </div>
+    </div>
+    <div class="content">
+      <section class="summary">
+        <div class="datebig"><div class="day">17</div><div class="datecopy"><b>วันพฤหัสบดี</b><span>กันยายน 2026</span></div></div>
+        <div class="ring"><span>1/5</span></div>
+        <div class="sumcopy"><div class="sumtitle">เหลืออีก 4 งานสำหรับวันนี้</div><div class="chips"><span class="chip">✓ เสร็จวันนี้ 1</span><span class="chip">◌ ต่อเนื่อง 2 วัน</span><span class="chip">↻ ทบทวน 1</span><span class="chip">▤ ตรวจทีละใบ</span></div></div>
+      </section>
+      <div class="filters"><button class="filter on">ทั้งหมด</button><button class="filter">● งาน</button><button class="filter">● อ่านสอบ</button><button class="filter">● ส่วนตัว</button><button class="filter">● วันเกิด</button></div>
+      <section class="group"><div class="gtitle">วันนี้ <span class="count">4</span></div>
+        <div class="list">
+          <div class="row"><div class="check"></div><div><div class="task">เตรียม: คุย Home visit</div><div class="sub">○ เขียน Genogram</div><div class="meta">วันนี้ · 20:00 · งาน</div></div><div class="badge">1</div></div>
+          <div class="row"><div class="check"></div><div><div class="task">อ่านหนังสือ</div><div class="sub">○ Palliative assessment<br>○ Home visit</div><div class="meta">วันนี้ · 22:30 · อ่านสอบ · รอบ 1</div></div><div class="badge">2</div></div>
+          <div class="row"><div class="check"></div><div><div class="task">อ่าน NL : pneumonia</div><div class="meta">วันนี้ · 20:00 · อ่านสอบ</div></div><div class="badge">3</div></div>
+          <div class="row"><div class="check"></div><div><div class="task">ทวน eye</div><div class="meta">วันนี้ · อ่านสอบ</div></div><div class="badge">4</div></div>
+        </div>
+      </section>
+      <section class="group"><div class="gtitle">พรุ่งนี้ <span class="count">1</span></div>
+        <div class="list"><div class="row"><div class="check"></div><div><div class="task">การ์ดที่รัก 💗</div><div class="meta">พรุ่งนี้ · 14:00 · ส่วนตัว</div></div><div class="badge">1</div></div></div>
+      </section>
+    </div>
+  </main>
+</div>
+<button class="fab">+</button>
+<div class="note">Preview only · สลับ Classic/Refined และ Light/Dark ได้ โดยไม่แตะข้อมูลจริง</div>
+<script>
+const root=document.documentElement;
+function setUI(v){root.dataset.ui=v; classic.classList.toggle('on',v==='classic'); refined.classList.toggle('on',v==='refined'); localStorage.setItem('r27-preview-ui',v)}
+function setTheme(v){root.dataset.theme=v; theme.textContent=v==='dark'?'☾':'☀︎'; localStorage.setItem('r27-preview-theme',v)}
+classic.onclick=()=>setUI('classic'); refined.onclick=()=>setUI('refined');
+theme.onclick=()=>setTheme(root.dataset.theme==='dark'?'light':'dark');
+setUI(localStorage.getItem('r27-preview-ui')||'refined'); setTheme(localStorage.getItem('r27-preview-theme')||'light');
+</script>
+</body></html>
